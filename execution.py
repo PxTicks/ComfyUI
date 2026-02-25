@@ -727,6 +727,20 @@ class PromptExecutor:
             for node_id in list(execute_outputs):
                 execution_list.add_node(node_id)
 
+            if self.server.client_id is not None:
+                for node_id in cached_nodes:
+                    if node_id in execution_list.pendingNodes:
+                        continue
+                    cached = self.caches.outputs.get(node_id)
+                    if cached is not None and cached.ui is not None:
+                        display_node_id = dynamic_prompt.get_display_node_id(node_id)
+                        self.server.send_sync("executed", {
+                            "node": node_id,
+                            "display_node": display_node_id,
+                            "output": cached.ui.get("output", None),
+                            "prompt_id": prompt_id
+                        }, self.server.client_id)
+
             while not execution_list.is_empty():
                 node_id, error, ex = await execution_list.stage_node_execution()
                 if error is not None:
